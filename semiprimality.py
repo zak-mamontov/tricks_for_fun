@@ -1,7 +1,52 @@
+# -*- coding: utf-8 -*-
+
 import math
 import random
+from itertools import islice, cycle, count, compress
 
-N = 1000
+N = 100000
+
+
+def croft():  # наверняка поест память на больших числах
+    for p in (2, 3, 5):
+        yield p
+    roots = {9: 3, 25: 5}
+    primeroots = frozenset((1, 7, 11, 13, 17, 19, 23, 29))
+    selectors = (1, 0, 1, 1, 0, 1, 1, 0, 1, 0, 0, 1, 1, 0, 0)
+    for q in compress(
+            islice(count(7), 0, None, 2),
+            cycle(selectors)
+    ):
+        if q in roots:
+            p = roots[q]
+            del roots[q]
+            x = q + 2*p
+            while x in roots or (x % 30) not in primeroots:
+                x += 2*p
+            roots[x] = p
+        else:
+            roots[q*q] = q
+            yield q
+primes = croft
+
+
+def decompose(n):  # собственно, бьём на множители
+    for p in primes():
+        if p*p > n:
+            break
+        while n % p == 0:
+            yield p
+            n //= p
+    if n > 1:
+        yield n
+
+
+def is_semiprime(n):  # алгоритм проверки на полупростоту
+    d = decompose(n)
+    try:
+        return next(d) * next(d) == n
+    except:
+        return False
 
 
 def f(x):  # функция по которой считается примерное количество полупростых на отрезке [0, x]
@@ -40,18 +85,12 @@ def main():  # самая некрасивая функция из-за свои
     num = int(math.floor(num))
     delta = 0
     while not discovered:
-        a = 1  # a и b - множители бипростого числа
-        b = 0
-        num = num + delta if num + delta > 0 else 1  # количество полупростых высчитывается не точно, соответсвуюющее число нужное число может оказаться в небольшом радиусе
-        delta = -1*(abs(delta)+1)*(delta/abs(delta)) if delta else 1  # иногда нужно пометаться, если не натолкнулись на нужное число
-        while b < 2 and a <= num**0.5+1:
-            a += 1
-            while not is_prime(a):
-                a += 1
-            b = num/a if num % a == 0 and is_prime(num/a) else 0
-
-        if a < num**0.5 + 1 and b != 0:
+        if is_semiprime(num):
             discovered = True
+        else:
+            num = num + delta  # количество полупростых высчитывается не точно, соответсвуюющее число нужное число может оказаться в небольшом радиусе
+            delta = -1*(abs(delta)+1)*(delta/abs(delta)) if delta else 1  # иногда нужно пометаться, если не натолкнулись на нужное число
+
     print num
 
 if __name__ == '__main__':
